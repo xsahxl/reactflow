@@ -1,25 +1,76 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useCallback } from "react";
+import ReactFlow, {
+  addEdge,
+  MiniMap,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
+} from "reactflow";
 
-function App() {
+import {
+  nodes as initialNodes,
+  edges as initialEdges,
+} from "./initial-elements";
+import CustomNode from "./CustomNode";
+
+import "reactflow/dist/style.css";
+import "./overview.css";
+
+const nodeTypes = {
+  custom: CustomNode,
+};
+
+const minimapStyle = {
+  height: 120,
+};
+
+const onInit = (reactFlowInstance) =>
+  console.log("flow loaded:", reactFlowInstance);
+
+const OverviewFlow = () => {
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const onConnect = useCallback((params) => {
+    console.log("onConnect", params);
+    return setEdges((eds) => addEdge(params, eds));
+  }, []);
+
+  // we are using a bit of a shortcut here to adjust the edge type
+  // this could also be done with a custom edge for example
+  const edgesWithUpdatedTypes = edges.map((edge) => {
+    if (edge.sourceHandle) {
+      const edgeType = nodes.find((node) => node.type === "custom").data
+        .selects[edge.sourceHandle];
+      edge.type = edgeType;
+    }
+
+    return edge;
+  });
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <ReactFlow
+      nodes={nodes}
+      edges={edgesWithUpdatedTypes}
+      onNodesChange={(nodes) => {
+        console.log("onNodesChange", nodes);
+        onNodesChange(nodes);
+      }}
+      onEdgesChange={(edges) => {
+        console.log("onEdgesChange", edges);
+        onEdgesChange(edges);
+      }}
+      onConnect={onConnect}
+      onInit={onInit}
+      fitView
+      attributionPosition="top-right"
+      nodeTypes={nodeTypes}
+    >
+      <MiniMap style={minimapStyle} />
+      <Controls />
+      <Background color="#aaa" gap={16} />
+    </ReactFlow>
   );
-}
+};
 
-export default App;
+export default OverviewFlow;
